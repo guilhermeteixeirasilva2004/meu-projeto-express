@@ -1,15 +1,46 @@
 const express = require('express');
-const path = require('path');
+const { Pool } = require('pg');
+
 const app = express();
-const PORT = 3000;
+const port = 3000;
 
-const publicPath = path.join(__dirname, 'app');
-app.use(express.static(publicPath));
-
-app.listen(PORT, () => {
-    console.log(`Sever is running on http://localhost:${PORT}`);
+// Configuração do PostgreSQL
+const pool = new Pool({
+  user: 'postgres',       
+  host: 'localhost',         
+  database: 'dados',          
+  password: 'asd',      
+  port: 5432,                
 });
 
-app.get('/', (req, res)=> {
-    res.sendFile(path.join(publicPath, 'index.html'));
-})
+// Rota para exibir as pessoas
+app.get('/pessoas', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM pessoas');
+    res.send(`
+      <h1>Lista de Pessoas</h1>
+      <ul>
+        ${rows.map(pessoa => `
+          <li>
+            ID: ${pessoa.id} | 
+            Nome: ${pessoa.pessoa} | 
+            Ano: ${pessoa.ano}
+          </li>
+        `).join('')}
+
+      </ul>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao buscar pessoas');
+  }
+});
+
+// Rota principal (hello world)
+app.get('/', (req, res) => {
+  res.send('Hello World! <a href="/pessoas">Ver pessoas</a>');
+});
+
+app.listen(port, () => {
+  console.log(`App rodando em http://localhost:${port}`);
+});
